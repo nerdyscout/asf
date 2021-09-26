@@ -3,7 +3,7 @@
 *
 * \brief WSNDemo application implementation
 *
-* Copyright (c) 2018 Microchip Technology Inc. and its subsidiaries. 
+* Copyright (c) 2018 - 2020 Microchip Technology Inc. and its subsidiaries. 
 *
 * \asf_license_start
 *
@@ -42,6 +42,7 @@
 #include "sysTimer.h"
 #include "commands.h"
 #include "miwi_api.h"
+#include "otau.h"
 
 #if defined(PAN_COORDINATOR)
 #include "sio2host.h"
@@ -108,6 +109,9 @@ typedef enum AppState_t {
 	APP_STATE_CONNECT_NETWORK,
 	APP_STATE_CONNECTING_NETWORK,
 	APP_STATE_IN_NETWORK,
+	APP_STATE_WAIT_FOR_RECONNECT_CALLBACK,
+	APP_STATE_RECONNECT_SUCCESS,
+	APP_STATE_RECONNECT_FAILURE,
 	APP_STATE_SEND,
 	APP_STATE_WAIT_CONF,
 	APP_STATE_SENDING_DONE,
@@ -115,7 +119,6 @@ typedef enum AppState_t {
 	APP_STATE_WAIT_COMMAND_TIMER,
 	APP_STATE_PREPARE_TO_SLEEP,
 	APP_STATE_SLEEP,
-	APP_STATE_WAKEUP,
 } AppState_t;
 COMPILER_PACK_RESET()
 /*- Variables --------------------------------------------------------------*/
@@ -144,7 +147,6 @@ void appLinkFailureCallback(void);
 #endif
 
 #if defined(ENABLE_NETWORK_FREEZER)
-bool reconnectStatus = false;
 static void ReconnectionIndication (miwi_status_t status);
 #endif
 /*- Implementations --------------------------------------------------------*/
@@ -191,9 +193,13 @@ static void appUartSendMessage(uint8_t *data, uint8_t size)
 static void appDataInd(RECEIVED_MESH_MESSAGE *ind)
 {
 	AppMessage_t *msg = (AppMessage_t *)ind->payload;
+
+#if !defined(ENABLE_SLEEP_FEATURE)
 #if (LED_COUNT > 0)
 	LED_Toggle(LED_DATA);
 #endif
+#endif
+
 	msg->lqi = ind->packetLQI;
 	msg->rssi = ind->packetRSSI;
 #if defined(PAN_COORDINATOR)
@@ -207,9 +213,12 @@ static void appDataInd(RECEIVED_MESH_MESSAGE *ind)
 *****************************************************************************/
 static void appDataSendingTimerHandler(SYS_Timer_t *timer)
 {
-	if (APP_STATE_WAIT_SEND_TIMER == appState) {
+	if ((APP_STATE_WAIT_SEND_TIMER == appState) || (APP_STATE_PREPARE_TO_SLEEP == appState)) 
+	{
 		appState = APP_STATE_SEND;
-	} else {
+	}
+	else
+	{
 		SYS_TimerStart(&appDataSendingTimer);
 	}
 
@@ -222,8 +231,10 @@ static void appDataSendingTimerHandler(SYS_Timer_t *timer)
 *****************************************************************************/
 static void appNetworkStatusTimerHandler(SYS_Timer_t *timer)
 {
+#if !defined(ENABLE_SLEEP_FEATURE)
 #if (LED_COUNT > 0)
 	LED_Toggle(LED_NETWORK);
+#endif
 #endif
 	(void)timer;
 }
@@ -234,22 +245,28 @@ static void appNetworkStatusTimerHandler(SYS_Timer_t *timer)
 #if defined(COORDINATOR) || defined (ENDDEVICE)
 static void appDataConf(uint8_t msgConfHandle, miwi_status_t status, uint8_t* msgPointer)
 {
+#if !defined(ENABLE_SLEEP_FEATURE)
 #if (LED_COUNT > 0)
 	LED_Off(LED_DATA);
+#endif
 #endif
 
 	if (SUCCESS == status) {
 		if (!appNetworkStatus) {
+#if !defined(ENABLE_SLEEP_FEATURE)
 #if (LED_COUNT > 0)
 			LED_On(LED_NETWORK);
+#endif
 #endif
 			SYS_TimerStop(&appNetworkStatusTimer);
 			appNetworkStatus = true;
 		}
 	} else {
 		if (appNetworkStatus) {
+#if !defined(ENABLE_SLEEP_FEATURE)
 #if (LED_COUNT > 0)
 			LED_Off(LED_NETWORK);
+#endif
 #endif
 			SYS_TimerStart(&appNetworkStatusTimer);
 			appNetworkStatus = false;
@@ -272,6 +289,8 @@ static void appSendData(void)
 #ifndef PAN_COORDINATOR
     uint16_t dstAddr = 0; /* PAN Coordinator Address */
 #endif
+	otau_log(LOG_INFO, MIWI_APP, ENTRY, 8, (uint8_t *)"App Data");
+	otau_trace(TRACE_ENTRY);
 
 	appMsg.sensors.battery     = rand() & 0xffff;
 	appMsg.sensors.temperature = rand() & 0x7f;
@@ -298,8 +317,10 @@ static void appSendData(void)
 	SYS_TimerStart(&appDataSendingTimer);
 	appState = APP_STATE_WAIT_SEND_TIMER;
 #else
+#if !defined(ENABLE_SLEEP_FEATURE)
 #if (LED_COUNT > 0)
 	LED_On(LED_DATA);
+#endif
 #endif
 
 	appMsg.caption.type         = 32;
@@ -317,7 +338,6 @@ static void appSendData(void)
 	    memcpy(appMsg.caption.text, APP_CAPTION, APP_CAPTION_SIZE);
 		sprintf(&(appMsg.caption.text[APP_CAPTION_SIZE - SHORT_ADDRESS_CAPTION_SIZE]), "-0x%04X", shortAddressLocal);
 	}
-
 	if (MiApp_SendData(2, (uint8_t *)&dstAddr, sizeof(appMsg), (uint8_t *)&appMsg, wsnmsghandle, true, appDataConf))
 	{
 		++wsnmsghandle;
@@ -365,8 +385,10 @@ static void appInit(void)
 	appNetworkStatusTimer.handler = appNetworkStatusTimerHandler;
 	SYS_TimerStart(&appNetworkStatusTimer);
 #else
+#if !defined(ENABLE_SLEEP_FEATURE)
 #if (LED_COUNT > 0)
 	LED_On(LED_NETWORK);
+#endif
 #endif
 #endif
 
@@ -377,19 +399,19 @@ static void appInit(void)
 #endif
 
 #if defined(ENABLE_NETWORK_FREEZER)
-     if (reconnectStatus)
-	 {
-		 appState = APP_STATE_SEND;		 
-	 }
-	 else
+    if (appState == APP_STATE_RECONNECT_SUCCESS)
+    {
+         appState = APP_STATE_SEND;
+    }
+    else
 #endif
-	 {
+    {
 #if defined(PAN_COORDINATOR)
-         appState = APP_STATE_START_NETWORK;
+        appState = APP_STATE_START_NETWORK;
 #else
-         appState = APP_STATE_CONNECT_NETWORK;
+        appState = APP_STATE_CONNECT_NETWORK;
 #endif 
-	 }
+    }
 }
 
 #if defined(ENABLE_NETWORK_FREEZER)
@@ -397,17 +419,11 @@ static void ReconnectionIndication (miwi_status_t status)
 {
 	if(SUCCESS == status)
 	{
-		reconnectStatus = true;
-#if defined(ENDDEVICE)
-		appState = APP_STATE_SEND;
-#endif
+		appState = APP_STATE_RECONNECT_SUCCESS;
 	}
 	else
 	{
-        reconnectStatus = false;
-#if defined(ENDDEVICE)
-         appState = APP_STATE_CONNECT_NETWORK;
-#endif
+		appState = APP_STATE_RECONNECT_FAILURE;
 	}
 }
 #endif
@@ -419,6 +435,8 @@ static void APP_TaskHandler(void)
 {
 	switch (appState) {
 	case APP_STATE_INITIAL:
+	case APP_STATE_RECONNECT_SUCCESS:
+	case APP_STATE_RECONNECT_FAILURE:
 	{
 		appInit();
 	}
@@ -448,6 +466,7 @@ static void APP_TaskHandler(void)
 	case APP_STATE_SENDING_DONE:
 	{
 #if defined(ENABLE_SLEEP_FEATURE) && defined(ENDDEVICE) && (CAPABILITY_INFO == CAPABILITY_INFO_ED)
+		SYS_TimerStart(&appDataSendingTimer);
 		appState = APP_STATE_PREPARE_TO_SLEEP;
 #else
 		SYS_TimerStart(&appDataSendingTimer);
@@ -456,6 +475,7 @@ static void APP_TaskHandler(void)
 	}
 	break;
 #if defined(ENABLE_SLEEP_FEATURE) && defined(ENDDEVICE)
+    case APP_STATE_WAIT_CONF:
 	case APP_STATE_PREPARE_TO_SLEEP:
 	{
 		uint32_t timeToSleep = 0;
@@ -464,29 +484,16 @@ static void APP_TaskHandler(void)
 		    MiApp_ReadyToSleep(&timeToSleep)
 		   )
 		{
-			if (timeToSleep > APP_SENDING_INTERVAL)
+			if (SYS_TimerStarted(&appDataSendingTimer) && (timeToSleep > SYS_TimerRemainingTimeout(&appDataSendingTimer)))
+			{
+				timeToSleep = SYS_TimerRemainingTimeout(&appDataSendingTimer);
+			}
+			else if(timeToSleep > APP_SENDING_INTERVAL)
 			{
 				timeToSleep = APP_SENDING_INTERVAL;
 			}
-
-			if (timeToSleep > MIN_SLEEP_INTERVAL)
-			{
-				sm_sleep(timeToSleep / 1000);
-				SYS_TimerAdjust_SleptTime(timeToSleep);
-				appState = APP_STATE_WAKEUP;
-			}
-			else
-			{
-				SYS_TimerStart(&appDataSendingTimer);
-		        appState = APP_STATE_WAIT_SEND_TIMER;
-			}
+			sleepMgr_sleep(timeToSleep);
 		}
-	}
-	break;
-
-	case APP_STATE_WAKEUP:
-	{
-		appState = APP_STATE_SEND;
 	}
 	break;
 #endif
@@ -520,23 +527,36 @@ static void APP_TaskHandler(void)
 void wsndemo_init(void)
 {
 	uint8_t i;
-	uint64_t ieeeAddr;
+	bool invalidIEEEAddrFlag = false;
 	uint64_t invalidIEEEAddr;
 
 #if defined(ENABLE_NETWORK_FREEZER)
     MiApp_SubscribeReConnectionCallback((ReconnectionCallback_t)ReconnectionIndication );
 #endif
-	MiApp_ProtocolInit(&defaultParamsRomOrRam, &defaultParamsRamOnly);
-	/* Check if a valid IEEE address is available. */
-	memcpy((uint8_t *)&ieeeAddr, (uint8_t *)&myLongAddress, LONG_ADDR_LEN);
-	memset((uint8_t *)&invalidIEEEAddr, 0xFF, sizeof(invalidIEEEAddr));
-	srand(PHY_RandomReq());
-	/*
-		* This while loop is on purpose, since just in the
-		* rare case that such an address is randomly
-		* generated again, we must repeat this.
-		*/
-	while ((ieeeAddr == 0x0000000000000000) || (ieeeAddr == invalidIEEEAddr))
+
+	/* Initialize the Protocol */
+	if (MiApp_ProtocolInit(&defaultParamsRomOrRam, &defaultParamsRamOnly) == RECONNECTION_IN_PROGRESS)
+	{
+		appState = APP_STATE_WAIT_FOR_RECONNECT_CALLBACK;
+	}
+
+	/* Check if a valid IEEE address is available.
+		0x0000000000000000 and 0xFFFFFFFFFFFFFFFF is persumed to be invalid */
+	/* Check if IEEE address is 0x0000000000000000 */
+	memset((uint8_t *)&invalidIEEEAddr, 0x00, LONG_ADDR_LEN);
+	if (0 == memcmp((uint8_t *)&invalidIEEEAddr, (uint8_t *)&myLongAddress, LONG_ADDR_LEN))
+	{
+		invalidIEEEAddrFlag = true;
+	}
+
+	/* Check if IEEE address is 0xFFFFFFFFFFFFFFFF */
+	memset((uint8_t *)&invalidIEEEAddr, 0xFF, LONG_ADDR_LEN);
+	if (0 == memcmp((uint8_t *)&invalidIEEEAddr, (uint8_t *)&myLongAddress, LONG_ADDR_LEN))
+	{
+		invalidIEEEAddrFlag = true;
+	}
+	
+	if (invalidIEEEAddrFlag)
 	{
 		/*
 			* In case no valid IEEE address is available, a random
@@ -549,13 +569,12 @@ void wsndemo_init(void)
 		{
 			*peui64++ = (uint8_t)rand();
 		}
-		memcpy((uint8_t *)&ieeeAddr, (uint8_t *)&myLongAddress, LONG_ADDR_LEN);
 	}
-	PHY_SetIEEEAddr((uint8_t *)&ieeeAddr);
+	PHY_SetIEEEAddr((uint8_t *)&myLongAddress);
 
 #ifdef ENABLE_SLEEP_FEATURE
 #if defined(ENDDEVICE)
-    sm_init();
+    sleepMgr_init();
 #endif
 #endif
 
@@ -571,16 +590,36 @@ void wsndemo_init(void)
 void searchConfim(uint8_t foundScanResults, void* ScanResults)
 {
 	searchConf_t* searchConfRes = (searchConf_t *)ScanResults;
+	uint8_t selectedParentIndex = 0xFF;
 	if (foundScanResults)
 	{
 		for (uint8_t loopindex = 0; loopindex < foundScanResults; loopindex++)
 		{
 			if (searchConfRes->beaconList[loopindex].connectionPermit)
 			{
-				MiApp_EstablishConnection(searchConfRes->beaconList[loopindex].logicalChannel,
-				SHORT_ADDR_LEN, (uint8_t*)&searchConfRes->beaconList[loopindex].shortAddress, CAPABILITY_INFO, Connection_Confirm);
-				return;
+#if defined(ENDDEVICE)
+                /* Select the parent which has the high end device capacity (holding less number of end devices) */
+				if (loopindex == 0)
+				{
+					selectedParentIndex = 0;
+				}
+#if (CAPABILITY_INFO == CAPABILITY_INFO_ED)
+				else if (searchConfRes->beaconList[loopindex].sleepEnddeviceCapacity > searchConfRes->beaconList[selectedParentIndex].sleepEnddeviceCapacity)
+#elif (CAPABILITY_INFO == CAPABILITY_INFO_ED_RXON)
+				else if (searchConfRes->beaconList[loopindex].enddeviceCapacity > searchConfRes->beaconList[selectedParentIndex].enddeviceCapacity)
+#endif
+#endif
+				{
+				    selectedParentIndex = loopindex;
+				}
 			}
+		}
+		
+		if (selectedParentIndex != 0xFF)
+		{
+			MiApp_EstablishConnection(searchConfRes->beaconList[selectedParentIndex].logicalChannel,
+			SHORT_ADDR_LEN, (uint8_t*)&searchConfRes->beaconList[selectedParentIndex].shortAddress, CAPABILITY_INFO, Connection_Confirm);
+			return;
 		}
 		/* Initiate the search again since no connection permit found to join */
 		appState = APP_STATE_CONNECT_NETWORK;

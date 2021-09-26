@@ -3,7 +3,7 @@
  *
  * \brief WiFi Provisioning Declarations
  *
- * Copyright (c) 2017-2018 Microchip Technology Inc. and its subsidiaries.
+ * Copyright (c) 2017-2021 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
@@ -31,12 +31,18 @@
  *
  */
 
+/*
+ * Support and FAQ: visit <a href="https://www.microchip.com/support/">Atmel
+ *Support</a>
+ */
+
 #ifndef __WIFIPROV_PROFI_H__
 #define __WIFIPROV_PROFI_H__
 
 #include <asf.h>
 #include "wifiprov_api.h"
 #include "driver/include/m2m_wifi.h"
+#include "string.h"
 
 #define	CREDENTIALS_NOT_VALID			0
 #define CREDENTIALS_VALID				1
@@ -70,7 +76,7 @@ void ble_prov_stop(void);
 uint8_t ble_prov_get_credentials(credentials *cred);
 //Allows setting of localname in scan response
 //Maximum length is 11 characters
-void ble_prov_init(uint8_t* localname);
+void ble_prov_init(uint8_t* localname, at_ble_auth_t lauthtype);
 void ble_prov_scan_result(tstrM2mWifiscanResult* pstrScanResult, uint8_t resultsRemaining);
 uint8_t ble_prov_get_provision_state(void);
 #define ble_prov_wifi_con_update		wifiprov_wifi_con_update

@@ -3,7 +3,7 @@
  *
  * \brief SAM SPI Unit test
  *
- * Copyright (c) 2013-2018 Microchip Technology Inc. and its subsidiaries.
+ * Copyright (c) 2013-2020 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
@@ -71,6 +71,8 @@
  *  - SAM HA1G16A Xplained Pro board
  *  - SAM C21 Xplained Pro board
  *  - SAM R30 Xplained Pro board
+ *  - SAM R34 Xplained Pro board 
+ *  - WLR 089 Xplained Pro board 
  *
  * \section appdoc_sam0_spi_unit_test_setup Setup
  * The following connections has to be made using wires:
@@ -114,6 +116,16 @@
  *  - \b SS_0:  EXT1 PIN12 (PA17) <--> EXT3 PIN15 (PA14)
  *  - \b DI/DO: EXT1 PIN7  (PA18) <--> EXT3 PIN16 (PB22)
  *  - \b SCK:   EXT1 PIN8  (PA19) <--> EXT3 PIN18 (PB23)
+ * - SAM R34 Xplained Pro
+ *  - \b DO/DI: EXT1 PIN11 (PA16) <--> EXT1 PIN17 (PB02)
+ *  - \b SS_0:  EXT1 PIN12 (PA17) <--> EXT1 PIN15 (PA23)
+ *  - \b DI/DO: EXT1 PIN7  (PA18) <--> EXT1 PIN16 (PB22)
+ *  - \b SCK:   EXT1 PIN8  (PA19) <--> EXT1 PIN18 (PB23)
+ * - WLR 089 Xplained Pro
+ *  - \b DO/DI: EXT1 PIN11 (PA16) <--> EXT1 PIN17 (PB02)
+ *  - \b SS_0:  EXT1 PIN12 (PA17) <--> EXT1 PIN15 (PA23)
+ *  - \b DI/DO: EXT1 PIN7  (PA18) <--> EXT1 PIN16 (PB22)
+ *  - \b SCK:   EXT1 PIN8  (PA19) <--> EXT1 PIN18 (PB23)
  *
  * To run the test:
  *  - Connect the SAM Xplained Pro board to the computer using a

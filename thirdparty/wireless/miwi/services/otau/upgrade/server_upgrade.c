@@ -3,7 +3,7 @@
 *
 * \brief Server Upgrade implementation
 *
-* Copyright (c) 2018 Microchip Technology Inc. and its subsidiaries.
+* Copyright (c) 2018 - 2019 Microchip Technology Inc. and its subsidiaries.
 *
 * \asf_license_start
 *
@@ -43,8 +43,6 @@
 #include "otau_upgrade.h"
 #include "otau_parser.h"
 
-upgrade_otau_state_t curr_upgrade_otau_state;
-
 void otauUpgradeInit(void)
 {
 
@@ -54,53 +52,53 @@ void otauUpgradeRcvdFrame(addr_mode_t addr_mode, uint8_t *src_addr, uint16_t len
 {
 	uint8_t msg_code = *(payload + 1);
 	payload += 2;
+	length -= 2;
 	switch (msg_code)
 	{
 		case OTA_SERVER_DISCOVERY:
 		{
-			send_server_data(DOMAIN_OTAU_UPGRADE, addr_mode, src_addr, SERVER_DISCOVERY_REQUEST, payload, length - 2);
+			send_server_data(DOMAIN_OTAU_UPGRADE, addr_mode, src_addr, SERVER_DISCOVERY_REQUEST, payload, length);
 			break;
 		}
 		case OTA_QUERY_IMAGE:
 		{
-			send_server_data(DOMAIN_OTAU_UPGRADE, addr_mode, src_addr, QUERY_IMAGE_REQUEST, payload, length - 2);
+			send_server_data(DOMAIN_OTAU_UPGRADE, addr_mode, src_addr, QUERY_IMAGE_REQUEST, payload, length);
 			break;
 		}
 		case OTA_IMAGE_REQUEST:
 		{
-			send_server_data(DOMAIN_OTAU_UPGRADE, addr_mode, src_addr, IMAGE_REQUEST, payload, length - 2);
+			send_server_data(DOMAIN_OTAU_UPGRADE, addr_mode, src_addr, IMAGE_REQUEST, payload, length);
 			break;
 		}
 		case OTA_SWITCH_REQUEST:
 		{
-			send_server_data(DOMAIN_OTAU_UPGRADE, addr_mode, src_addr, SWITCH_IMAGE_REQUEST, payload + 1, length - 2);
+			send_server_data(DOMAIN_OTAU_UPGRADE, addr_mode, src_addr, SWITCH_IMAGE_REQUEST, payload, length);
 			break;
 		}
 		break;
 	}
 }
 
-void otauUpgradeSentFrame(addr_mode_t addr_mode, uint8_t *addr, uint8_t status)
+void otauUpgradeSentFrame(uint8_t messageId, addr_mode_t addr_mode, uint8_t *addr, uint8_t status)
 {
-	switch (curr_upgrade_otau_state)
+	switch (messageId)
 	{
-		case SERVER_NOTIFY_SENT:
+		case OTA_SERVER_NOTIFY:
 		send_server_data(DOMAIN_OTAU_UPGRADE, addr_mode, addr, SERVER_NOTIFY_CONFIRM, &status, 1);
 		break;
-		case IMAGE_NOTIFY_SENT:
+		case OTA_IMAGE_NOTIFY:
 		send_server_data(DOMAIN_OTAU_UPGRADE, addr_mode, addr, IMAGE_NOTIFY_CONFIRM, &status, 1);
 		break;
-		case IMAGE_RESPONSE_SENT:
+		case OTA_IMAGE_RESPONSE:
 		send_server_data(DOMAIN_OTAU_UPGRADE, addr_mode, addr, IMAGE_CONFIRM, &status, 1);
 		break;
-		case SWITCH_RESPONSE_SENT:
+		case OTA_SWITCH_RESPONSE:
 		send_server_data(DOMAIN_OTAU_UPGRADE, addr_mode, addr, SWITCH_IMAGE_CONFIRM, &status, 1);
 		break;
 		default:
 		break;
 		/*  */
 	}
-	curr_upgrade_otau_state = UPGRADE_OTAU_IDLE;
 }
 
 
@@ -109,7 +107,7 @@ void otauUpgradeSentFrame(addr_mode_t addr_mode, uint8_t *addr, uint8_t status)
  * \brief Parses the Received Data in the Buffer and Process the Commands
  *accordingly.
  */
-void handle_upgrade_otau_msg(otau_domain_msg_t *otau_domain_msg)
+void otauHandleUpgradeMsg(otau_domain_msg_t *otau_domain_msg)
 {
 	uint8_t *msg = &(otau_domain_msg->domain_msg);
 	/* *msg is the mode specification for phy/app */
@@ -140,7 +138,6 @@ void handle_upgrade_otau_msg(otau_domain_msg_t *otau_domain_msg)
 			server_notify.msgId = OTA_SERVER_NOTIFY;
 			memcpy(&server_notify.ieee_addr, get_node_address(EXTENDED_ADDR_MODE), EXTENDED_ADDR_SIZE);
 			memcpy(&server_notify.short_addr, get_node_address(NATIVE_ADDR_MODE), NATIVE_ADDR_SIZE);
-			curr_upgrade_otau_state = SERVER_NOTIFY_SENT;
 			server_notify.domainId = DOMAIN_OTAU_UPGRADE;
 			otauDataSend(addr_mode, addr, &server_notify, sizeof(server_notify_indication_t));
 			break;
@@ -150,7 +147,6 @@ void handle_upgrade_otau_msg(otau_domain_msg_t *otau_domain_msg)
 			otauImageNotifyRequest_t imageNotify;
 			imageNotify.msgId = OTA_IMAGE_NOTIFY;
 			memcpy(&imageNotify.imageType, msg, sizeof(otauImageNotifyRequest_t) - 2);
-			curr_upgrade_otau_state = IMAGE_NOTIFY_SENT;
 			imageNotify.domainId = DOMAIN_OTAU_UPGRADE;
 			otauDataSend(addr_mode, addr, &imageNotify, sizeof(otauImageNotifyRequest_t));
 			break;
@@ -164,7 +160,6 @@ void handle_upgrade_otau_msg(otau_domain_msg_t *otau_domain_msg)
 			memcpy(&image_response.imageRespType, msg, temp);
 			msg += temp;
 			memcpy(&image_response.block, msg, image_response.blockSize);
-			curr_upgrade_otau_state = IMAGE_RESPONSE_SENT;
 			image_response.domainId = DOMAIN_OTAU_UPGRADE;
 			otauDataSend(addr_mode, addr, &image_response, temp + 2 + image_response.blockSize);
 			break;
@@ -174,7 +169,6 @@ void handle_upgrade_otau_msg(otau_domain_msg_t *otau_domain_msg)
 			otauSwitchImageResponse_t switch_image_resp;
 			switch_image_resp.msgId = OTA_SWITCH_RESPONSE;
 			memcpy(&switch_image_resp.switchTime, msg, sizeof(switch_image_resp.switchTime));
-			curr_upgrade_otau_state = SWITCH_RESPONSE_SENT;
 			switch_image_resp.domainId = DOMAIN_OTAU_UPGRADE;
 			otauDataSend(addr_mode, addr, &switch_image_resp, sizeof(otauSwitchImageResponse_t));
 			break;

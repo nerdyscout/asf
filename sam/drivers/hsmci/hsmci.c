@@ -3,7 +3,7 @@
  *
  * \brief SAM HSMCI driver
  *
- * Copyright (c) 2012-2018 Microchip Technology Inc. and its subsidiaries.
+ * Copyright (c) 2012-2019 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
@@ -481,6 +481,7 @@ bool hsmci_adtc_start(sdmmc_cmd_def_t cmd, uint32_t arg, uint16_t block_size, ui
 
 #if (SAMV70 || SAMV71 || SAME70 || SAMS70)
 #ifdef HSMCI_DMA_DMAEN
+#if DMA_NOT_BY_DEFAULT
 	if (access_block) {
 		// Enable DMA for HSMCI
 		HSMCI->HSMCI_DMA = HSMCI_DMA_DMAEN;
@@ -488,6 +489,9 @@ bool hsmci_adtc_start(sdmmc_cmd_def_t cmd, uint32_t arg, uint16_t block_size, ui
 		// Disable DMA for HSMCI
 		HSMCI->HSMCI_DMA = 0;
 	}
+#else
+	HSMCI->HSMCI_DMA = HSMCI_DMA_DMAEN;
+#endif	 
 #endif
 #endif
 	// Enabling Read/Write Proof allows to stop the HSMCI Clock during
@@ -943,7 +947,7 @@ bool hsmci_start_read_blocks(void *dest, uint16_t nb_block)
 						| XDMAC_CC_DIF_AHB_IF0
 						| XDMAC_CC_SAM_FIXED_AM
 						| XDMAC_CC_DAM_INCREMENTED_AM
-						| XDMAC_CC_PERID(CONF_HSMCI_XDMAC_CHANNEL);
+						| XDMAC_CC_PERID(XDMAC_HW_ID_HSMCI);
 		p_cfg.mbr_ubc = nb_data;
 		HSMCI->HSMCI_MR |= HSMCI_MR_FBYTE;
 	} else {
@@ -956,7 +960,7 @@ bool hsmci_start_read_blocks(void *dest, uint16_t nb_block)
 						| XDMAC_CC_DIF_AHB_IF0
 						| XDMAC_CC_SAM_FIXED_AM
 						| XDMAC_CC_DAM_INCREMENTED_AM
-						| XDMAC_CC_PERID(CONF_HSMCI_XDMAC_CHANNEL);
+						| XDMAC_CC_PERID(XDMAC_HW_ID_HSMCI);
 		p_cfg.mbr_ubc = nb_data / 4;
 		HSMCI->HSMCI_MR &= ~HSMCI_MR_FBYTE;
 	}
@@ -1019,7 +1023,7 @@ bool hsmci_start_write_blocks(const void *src, uint16_t nb_block)
 						| XDMAC_CC_DIF_AHB_IF1
 						| XDMAC_CC_SAM_INCREMENTED_AM
 						| XDMAC_CC_DAM_FIXED_AM
-						| XDMAC_CC_PERID(CONF_HSMCI_XDMAC_CHANNEL);
+						| XDMAC_CC_PERID(XDMAC_HW_ID_HSMCI);
 		p_cfg.mbr_ubc = nb_data;
 		HSMCI->HSMCI_MR |= HSMCI_MR_FBYTE;
 	} else {
@@ -1032,7 +1036,7 @@ bool hsmci_start_write_blocks(const void *src, uint16_t nb_block)
 						| XDMAC_CC_DIF_AHB_IF1
 						| XDMAC_CC_SAM_INCREMENTED_AM
 						| XDMAC_CC_DAM_FIXED_AM
-						| XDMAC_CC_PERID(CONF_HSMCI_XDMAC_CHANNEL);
+						| XDMAC_CC_PERID(XDMAC_HW_ID_HSMCI);
 		p_cfg.mbr_ubc = nb_data / 4;
 		HSMCI->HSMCI_MR &= ~HSMCI_MR_FBYTE;
 	}

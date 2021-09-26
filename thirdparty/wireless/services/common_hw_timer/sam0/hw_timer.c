@@ -4,7 +4,7 @@
  * @brief
  *
  *
- * Copyright (c) 2013-2018 Microchip Technology Inc. and its subsidiaries.
+ * Copyright (c) 2013-2020 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
@@ -37,7 +37,7 @@
 #include "tc.h"
 #include "tc_interrupt.h"
 #include "hw_timer.h"
-#if SAMD || SAMR21 || SAML21 || SAMR30
+#if SAMD || SAMR21 || SAML21 || SAMR30 || SAMR34 || SAMR35 || (WLR089)
 #include "clock.h"
 #include <system_interrupt.h>
 #else
@@ -86,6 +86,7 @@ void tmr_disable_cc_interrupt(void)
  */
 void tmr_enable_cc_interrupt(void)
 {
+	tc_clear_status(&module_inst, TC_STATUS_CHANNEL_0_MATCH);
 	tc_enable_callback(&module_inst, TC_CALLBACK_CC_CHANNEL0);
 }
 
@@ -149,7 +150,7 @@ static void tc_cca_callback(struct tc_module *const module_instance)
  */
 uint8_t tmr_init(void)
 {
-	uint8_t timer_multiplier;
+	float timer_multiplier;
 	tc_get_config_defaults(&timer_config);
 	#ifdef ENABLE_SLEEP
 	if (sys_sleep == true) {
@@ -165,7 +166,7 @@ uint8_t tmr_init(void)
 	tc_register_callback(&module_inst, tc_cca_callback,
 			TC_CALLBACK_CC_CHANNEL0);
 	tc_enable_callback(&module_inst, TC_CALLBACK_OVERFLOW);
-	tc_enable_callback(&module_inst, TC_CALLBACK_CC_CHANNEL0);
+	/*tc_enable_callback(&module_inst, TC_CALLBACK_CC_CHANNEL0);*/
 
 	tc_enable(&module_inst);
 
@@ -173,13 +174,19 @@ uint8_t tmr_init(void)
 	 * timer with 1Mhz */
 	#ifdef ENABLE_SLEEP
 	if (sys_sleep == true) {
-		timer_multiplier = system_gclk_gen_get_hz(1) / 2000000;
+		timer_multiplier = system_gclk_gen_get_hz(1) / (float) 2000000;
 	} else {
-		timer_multiplier = system_gclk_gen_get_hz(0) / DEF_1MHZ;
+		timer_multiplier = system_gclk_gen_get_hz(0) / (float) DEF_1MHZ;
 	}
 
     #else
-	timer_multiplier = system_gclk_gen_get_hz(0) / DEF_1MHZ;
+	timer_multiplier = system_gclk_gen_get_hz(0) / (float) DEF_1MHZ;	
 	#endif
-	return timer_multiplier;
+	
+	if ((timer_multiplier - (uint32_t)timer_multiplier) >= 0.5f)
+	{
+		timer_multiplier += 1.0f;
+	}
+	
+	return (uint8_t) timer_multiplier;
 }

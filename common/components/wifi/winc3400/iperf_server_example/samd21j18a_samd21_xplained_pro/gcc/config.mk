@@ -57,6 +57,7 @@ CSRCS = \
        common/components/wifi/winc3400/wifi_drv/bsp/source/nm_bsp_samd21.c \
        common/components/wifi/winc3400/wifi_drv/bsp/source/nm_bsp_samd21_app.c \
        common/components/wifi/winc3400/wifi_drv/bus_wrapper/source/nm_bus_wrapper_samd21.c \
+       common/components/wifi/winc3400/wifi_drv/common/source/efuse.c \
        common/components/wifi/winc3400/wifi_drv/common/source/nm_common.c \
        common/components/wifi/winc3400/wifi_drv/driver/source/m2m_ate_mode.c \
        common/components/wifi/winc3400/wifi_drv/driver/source/m2m_crypto.c \
@@ -69,7 +70,6 @@ CSRCS = \
        common/components/wifi/winc3400/wifi_drv/driver/source/nmasic.c \
        common/components/wifi/winc3400/wifi_drv/driver/source/nmbus.c \
        common/components/wifi/winc3400/wifi_drv/driver/source/nmdrv.c \
-       common/components/wifi/winc3400/wifi_drv/driver/source/nmflash.c \
        common/components/wifi/winc3400/wifi_drv/driver/source/nmi2c.c \
        common/components/wifi/winc3400/wifi_drv/driver/source/nmspi.c \
        common/components/wifi/winc3400/wifi_drv/driver/source/nmuart.c \
@@ -78,6 +78,7 @@ CSRCS = \
        common/utils/interrupt/interrupt_sam_nvic.c        \
        common2/services/delay/sam0/systick_counter.c      \
        sam0/boards/samd21_xplained_pro/board_init.c       \
+       sam0/drivers/dma/dma.c                             \
        sam0/drivers/extint/extint_callback.c              \
        sam0/drivers/extint/extint_sam_d_r_h/extint.c      \
        sam0/drivers/port/port.c                           \
@@ -115,6 +116,7 @@ INC_PATH = \
        common2/services/delay/sam0                        \
        sam0/boards                                        \
        sam0/boards/samd21_xplained_pro                    \
+       sam0/drivers/dma                                   \
        sam0/drivers/extint                                \
        sam0/drivers/extint/extint_sam_d_r_h               \
        sam0/drivers/port                                  \

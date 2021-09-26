@@ -81,12 +81,16 @@ CSRCS = \
        thirdparty/wireless/miwi/apps/wsn_demo/commands.c  \
        thirdparty/wireless/miwi/apps/wsn_demo/main.c      \
        thirdparty/wireless/miwi/apps/wsn_demo/wsndemo.c   \
+       thirdparty/wireless/miwi/services/otau/circularBuffer.c \
+       thirdparty/wireless/miwi/services/otau/debug/client_debug.c \
+       thirdparty/wireless/miwi/services/otau/debug/server_debug.c \
        thirdparty/wireless/miwi/services/otau/notify/client_notify.c \
        thirdparty/wireless/miwi/services/otau/notify/server_notify.c \
        thirdparty/wireless/miwi/services/otau/otau.c      \
        thirdparty/wireless/miwi/services/otau/otau_parser.c \
        thirdparty/wireless/miwi/services/otau/upgrade/client_upgrade.c \
        thirdparty/wireless/miwi/services/otau/upgrade/server_upgrade.c \
+       thirdparty/wireless/miwi/services/pds/src/nopds/fakePds.c \
        thirdparty/wireless/miwi/services/pds/src/nv/D_Nv.c \
        thirdparty/wireless/miwi/services/pds/src/nv/External/D_XNv-SamR21.c \
        thirdparty/wireless/miwi/services/pds/src/nv/External/S_Nv-External.c \
@@ -158,6 +162,7 @@ INC_PATH = \
        thirdparty/wireless/miwi/apps/wsn_demo/panc/samr30_xplained_pro \
        thirdparty/wireless/miwi/include                   \
        thirdparty/wireless/miwi/services/otau             \
+       thirdparty/wireless/miwi/services/otau/debug       \
        thirdparty/wireless/miwi/services/otau/notify      \
        thirdparty/wireless/miwi/services/otau/upgrade     \
        thirdparty/wireless/miwi/services/pds/inc          \

@@ -3,7 +3,7 @@
  *
  * \brief Event handling Serial I/O  Functionalities
  *
- * Copyright (c) 2013-2018 Microchip Technology Inc. and its subsidiaries.
+ * Copyright (c) 2013-2020 Microchip Technology Inc. and its subsidiaries.
  *
  * \asf_license_start
  *
@@ -53,6 +53,10 @@
  * not initialized
  */
 void sio2host_init(void);
+/**
+ * \brief DeInitializes the Serial IO Module
+ */
+void sio2host_deinit(void);
 
 /**
  * \brief Transmits data via UART
@@ -93,7 +97,19 @@ void sio2host_putchar(uint8_t);
  */
 int sio2host_getchar_nowait(void);
 
-#if SAMD || SAMR21 || SAML21 || SAMR30
+/**
+ * \brief Disables the Serial IO Module
+ * \return void
+ */
+void sio2host_disable(void);
+
+/**
+ * \brief Enables the Serial IO Module
+ * \return void
+ */
+void sio2host_enable(void);
+
+#if SAMD || SAMR21 || SAML21 || SAMR30 || SAMR34 || SAMR35 || (WLR089)
 void USART_HOST_ISR_VECT(uint8_t instance);
 
 #endif

@@ -120,6 +120,7 @@ ASSRCS =
 INC_PATH = \
        common/boards                                      \
        common/components/wifi/winc1500/aws_rsa_example    \
+       common/components/wifi/winc1500/aws_rsa_example/doc \
        common/components/wifi/winc1500/aws_rsa_example/samd21g18a_samw25_xplained_pro \
        common/components/wifi/winc1500/host_drv           \
        common/services/serial                             \
@@ -152,6 +153,7 @@ INC_PATH = \
        sam0/utils/preprocessor                            \
        sam0/utils/stdio/stdio_serial                      \
        thirdparty/AWS_SDK                                 \
+       thirdparty/AWS_SDK/AWS_SDK                         \
        thirdparty/CMSIS/Include                           \
        thirdparty/CMSIS/Lib/GCC \
        common/components/wifi/winc1500/aws_rsa_example/samd21g18a_samw25_xplained_pro/gcc

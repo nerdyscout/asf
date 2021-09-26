@@ -31,6 +31,10 @@
  * \asf_license_stop
  *
  */
+/*
+ * Support and FAQ: visit <a href="https://www.microchip.com/support/">Microchip Support</a>
+ */
+ 
 /**@defgroup  BSPDefine Defines
  * @ingroup nm_bsp
  * @{
@@ -69,6 +73,13 @@ typedef void (*tpfNmBspIsr)(void);
 *    Void Pointer to '0' in case of NULL is not defined. 
 */
 
+#ifndef FALSE
+#define FALSE   (0)
+#endif
+
+#ifndef TRUE
+#define TRUE    (1)
+#endif
 
 #define BSP_MIN(x,y) ((x)>(y)?(y):(x))
 /*!< 
@@ -286,7 +297,7 @@ void* nm_bsp_malloc(uint32 u32Size);
  */
 void nm_bsp_free(void* pvMemBuffer);
   /**@}*/
- 
+
 #ifdef __cplusplus
 }
 #endif

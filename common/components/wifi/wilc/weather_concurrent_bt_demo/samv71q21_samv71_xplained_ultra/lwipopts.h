@@ -133,7 +133,7 @@ extern int random_number(void);
 /**
  * PBUF_POOL_BUFSIZE: the size of each pbuf in the pbuf pool.
  */
-#define PBUF_POOL_BUFSIZE               1604
+#define PBUF_POOL_BUFSIZE               1610
 
 /** ETH_PAD_SIZE: number of bytes added before the ethernet header to ensure
  * alignment of payload after that header. Since the header is 14 bytes long,
@@ -259,7 +259,13 @@ extern int random_number(void);
 /**
  * LWIP_AUTOIP==1: Enable AUTOIP module.
  */
-#define LWIP_AUTOIP					1
+#define LWIP_AUTOIP						1
+
+/**
+ * LWIP_DHCP_AUTOIP_COOP==1: Allow DHCP and AUTOIP to be both enabled on
+ * the same interface at the same time.
+ */
+#define LWIP_DHCP_AUTOIP_COOP           1
 
 /*
    ------------------------------------

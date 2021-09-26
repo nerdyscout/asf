@@ -83,12 +83,16 @@ CSRCS = \
        thirdparty/wireless/miwi/apps/wsn_demo/commands.c  \
        thirdparty/wireless/miwi/apps/wsn_demo/main.c      \
        thirdparty/wireless/miwi/apps/wsn_demo/wsndemo.c   \
+       thirdparty/wireless/miwi/services/otau/circularBuffer.c \
+       thirdparty/wireless/miwi/services/otau/debug/client_debug.c \
+       thirdparty/wireless/miwi/services/otau/debug/server_debug.c \
        thirdparty/wireless/miwi/services/otau/notify/client_notify.c \
        thirdparty/wireless/miwi/services/otau/notify/server_notify.c \
        thirdparty/wireless/miwi/services/otau/otau.c      \
        thirdparty/wireless/miwi/services/otau/otau_parser.c \
        thirdparty/wireless/miwi/services/otau/upgrade/client_upgrade.c \
        thirdparty/wireless/miwi/services/otau/upgrade/server_upgrade.c \
+       thirdparty/wireless/miwi/services/pds/src/nopds/fakePds.c \
        thirdparty/wireless/miwi/services/pds/src/nv/D_Nv.c \
        thirdparty/wireless/miwi/services/pds/src/nv/External/D_XNv-SamR21.c \
        thirdparty/wireless/miwi/services/pds/src/nv/External/S_Nv-External.c \
@@ -98,6 +102,7 @@ CSRCS = \
        thirdparty/wireless/miwi/services/pds/src/wl/wlPdsInit.c \
        thirdparty/wireless/miwi/services/pds/src/wl/wlPdsTaskManager.c \
        thirdparty/wireless/miwi/services/pds/src/wl/wlPdsTypesConverter.c \
+       thirdparty/wireless/miwi/services/sleep_mgr/sam0/sleep_mgr.c \
        thirdparty/wireless/miwi/source/mimac/mimac_at86rf.c \
        thirdparty/wireless/miwi/source/mimac/phy/at86rf212b/phy.c \
        thirdparty/wireless/miwi/source/miwi_mesh/miwi_mesh_app.c \
@@ -112,7 +117,6 @@ CSRCS = \
        thirdparty/wireless/services/edbg_eui/edbg-eui.c   \
        thirdparty/wireless/services/nvm/sam0/sam_nvm.c    \
        thirdparty/wireless/services/sal/at86rf2xx/src/sal.c \
-       thirdparty/wireless/services/sleep_mgr/sam0/sleep_mgr.c \
        thirdparty/wireless/services/trx_access/trx_access.c
 
 # List of assembler source files.
@@ -163,12 +167,14 @@ INC_PATH = \
        thirdparty/wireless/miwi/apps/wsn_demo/ed_sec/samr30_xplained_pro \
        thirdparty/wireless/miwi/include                   \
        thirdparty/wireless/miwi/services/otau             \
+       thirdparty/wireless/miwi/services/otau/debug       \
        thirdparty/wireless/miwi/services/otau/notify      \
        thirdparty/wireless/miwi/services/otau/upgrade     \
        thirdparty/wireless/miwi/services/pds/inc          \
        thirdparty/wireless/miwi/services/pds/inc/nv       \
        thirdparty/wireless/miwi/services/pds/inc/nv/External \
        thirdparty/wireless/miwi/services/pds/inc/wl       \
+       thirdparty/wireless/miwi/services/sleep_mgr        \
        thirdparty/wireless/miwi/source/mimac              \
        thirdparty/wireless/miwi/source/mimac/phy          \
        thirdparty/wireless/miwi/source/miwi_mesh          \
@@ -179,7 +185,6 @@ INC_PATH = \
        thirdparty/wireless/services/edbg_eui              \
        thirdparty/wireless/services/nvm                   \
        thirdparty/wireless/services/sal/inc               \
-       thirdparty/wireless/services/sleep_mgr             \
        thirdparty/wireless/services/trx_access \
        thirdparty/wireless/miwi/apps/wsn_demo/ed_sec/samr30_xplained_pro/gcc
 

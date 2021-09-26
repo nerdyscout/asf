@@ -3,7 +3,7 @@
 *
 * \brief MAC Layer Abstraction for AT86RFx implementation
 *
-* Copyright (c) 2018 Microchip Technology Inc. and its subsidiaries. 
+* Copyright (c) 2018 - 2019 Microchip Technology Inc. and its subsidiaries. 
 *
 * \asf_license_start
 *
@@ -80,7 +80,6 @@ miwi_status_t dataStatus;
 uint8_t dataHandle = 0;
 uint8_t* dataPointer = NULL;
 DataConf_callback_t dataConfCallback = NULL;
-
 /************************************************************************************
  * Function:
  *      bool MiMAC_SetAltAddress(uint8_t *Address, uint8_t *PANID)
@@ -229,16 +228,19 @@ void mic_generator (uint8_t *Payloadinfo, uint8_t len , uint8_t frame_control , 
 bool DataEncrypt(uint8_t *Payloadinfo, uint8_t *Payload_len, API_UINT32_UNION FrameCounter,
 uint8_t FrameControl)
 {
-	uint8_t i , iterations , block[16] , j , CTR_Nonce_and_Counter[16];
+	uint8_t i , iterations , block[16] , j , CTR_Nonce_and_Counter[16], CipheringData[CALC_SEC_PAYLOAD_SIZE(TX_BUFFER_SIZE)];
 	// Calculating No of blocks in the packet (1 block = 16 bytes of data)
 	iterations = *Payload_len/16;
 	if (*Payload_len % 16 != 0) iterations++;
+
+    // Copy payload for security processing 
+	memcpy(CipheringData, Payloadinfo, *Payload_len);
 
 	mic_generator(&Payloadinfo[0] , *Payload_len, FrameControl  , FrameCounter ,  MACInitParams.PAddress);
 
 	for (i=*Payload_len;i<iterations *16 ; i++ )
 	{
-		Payloadinfo[i] = 0; // Padding
+		CipheringData[i] = 0; // Padding
 	}
 	CTR_Nonce_and_Counter[0] = 0x01;  // L
 	for (i=0;i<8;i++)
@@ -268,18 +270,22 @@ uint8_t FrameControl)
 			}
 			else
 			{
-				Payloadinfo[j+(i-1)*16] = block[j] ^ Payloadinfo[j+(i-1)*16];
+				CipheringData[j+(i-1)*16] = block[j] ^ CipheringData[j+(i-1)*16];
 			}
 		}
-		CTR_Nonce_and_Counter[15]++; // Increment Counter for next opration
+		CTR_Nonce_and_Counter[15]++; // Increment Counter for next operation
 	}
+
+    // Copy back the decrypted payload after security processing 
+	memcpy(Payloadinfo, CipheringData, *Payload_len);
+
 	return true;
 
 }
 // Validates the Received mic with the mic computed from data packet decryption.
 bool validate_mic(void)
 {
-	if (final_mic_value[0] != received_mic_values[0] || final_mic_value[1] != received_mic_values[1])
+	if (final_mic_value[0] != received_mic_values[0] || final_mic_value[1] != received_mic_values[1] || final_mic_value[2] != received_mic_values[2] || final_mic_value[3] != received_mic_values[3])
 	{
 		return false;
 	}
@@ -334,16 +340,19 @@ bool validate_mic(void)
 bool DataDecrypt(uint8_t *Payload, uint8_t *PayloadLen, uint8_t *SourceIEEEAddress,
 API_UINT32_UNION FrameCounter, uint8_t FrameControl)
 {
-	uint8_t i , iterations , block[16] , j , CTR_Nonce_and_Counter[16];
+	uint8_t i , iterations , block[16] , j , CTR_Nonce_and_Counter[16], CipheringData[CALC_SEC_PAYLOAD_SIZE(RX_BUFFER_SIZE)];
 	// Calculating No of blocks in the packet (1 block = 16 bytes of data)
 	iterations = *PayloadLen/16;
 	if (*PayloadLen % 16 != 0) iterations++;
+
+	// Copy payload for security processing 
+	memcpy(CipheringData, Payload, *PayloadLen);
 
 	//mic_generator(&Payloadinfo[0] , *Payload_len);
 
 	for (i=*PayloadLen;i<iterations *16 ; i++ )
 	{
-		Payload[i] = 0; // Padding
+		CipheringData[i] = 0; // Padding
 	}
 	CTR_Nonce_and_Counter[0] = 0x01;  // L
 	for (i=0;i<8;i++)
@@ -374,17 +383,21 @@ API_UINT32_UNION FrameCounter, uint8_t FrameControl)
 			}
 			else
 			{
-				Payload[j+(i-1)*16] = block[j] ^ Payload[j+(i-1)*16];
+				CipheringData[j+(i-1)*16] = block[j] ^ CipheringData[j+(i-1)*16];
 			}
 		}
 		CTR_Nonce_and_Counter[15]++; // Increment Counter for next opration
 	}
 	*PayloadLen = *PayloadLen-4;
-	mic_generator(&Payload[0] , *PayloadLen , FrameControl  , FrameCounter , SourceIEEEAddress);
+	mic_generator(&CipheringData[0] , *PayloadLen , FrameControl  , FrameCounter , SourceIEEEAddress);
 	for (i=0;i<16;i++)
 	{
 		final_mic_value[i] = CTR_mic[i] ^ CBC_mic[i];
 	}
+
+	// Copy back the decrypted payload after security processing 
+	memcpy(Payload, CipheringData, *PayloadLen);
+
 	return validate_mic();
 
 }
@@ -620,7 +633,7 @@ bool MiMAC_Init(MACINIT_PARAM initValue)
      *      None
      *
      *****************************************************************************************/
-
+uint8_t packet[128];//temp buffer
 bool MiMAC_SendPacket( MAC_TRANS_PARAM transParam,
          uint8_t *MACPayload,
          uint8_t MACPayloadLen, uint8_t msghandle,
@@ -629,8 +642,9 @@ bool MiMAC_SendPacket( MAC_TRANS_PARAM transParam,
     uint8_t headerLength;
     uint8_t loc = 0;
     uint8_t i = 0;
-	uint8_t packet[128];
 	uint8_t frameControl = 0;
+	PHY_DataReq_t phyDataRequest;
+
 	#ifndef TARGET_SMALL
 		bool IntraPAN;
 	#endif
@@ -857,8 +871,12 @@ if (transParam.flags.bits.secEn)
 	dataConfCallback = ConfCallback;
     dataHandle = msghandle;
 
+    phyDataRequest.polledConfirmation = false;
+    phyDataRequest.confirmCallback = PHY_DataConf;
+    phyDataRequest.data = packet;
+
     // Now Trigger the Transmission of packet
-    PHY_DataReq(packet);
+    PHY_DataReq(&phyDataRequest);
     return true;
 }
 
@@ -970,6 +988,7 @@ bool MiMAC_ReceivedPacket(void)
 		#endif
 		MACRxPacket.flags.Val = 0;
 		MACRxPacket.altSourceAddress = false;
+		MACRxPacket.SourcePANID.Val = 0xFFFF;
 
 		//Determine the start of the MAC payload
 		addrMode = RxBuffer[BankIndex].Payload[1] & 0xCC;
@@ -1148,26 +1167,20 @@ bool MiMAC_ReceivedPacket(void)
 
 			for (i = 0; i < CONNECTION_SIZE; i++)
 			{
-				if ((ConnectionTable[i].status.bits.isValid) &&
-				isSameAddress(ConnectionTable[i].Address, MACRxPacket.SourceAddress))
+				if ((defaultParamsRomOrRam.ConnectionTable[i].status.bits.isValid) &&
+				isSameAddress(defaultParamsRomOrRam.ConnectionTable[i].Address, MACRxPacket.SourceAddress))
 				{
 					break;
 				}
 			}
-
-			if (i < CONNECTION_SIZE)
-			{
-				if (IncomingFrameCounter[i].Val > FrameCounter.Val)
-				{
-					MiMAC_DiscardPacket();
-					return false;
-				} else
-				{
-					IncomingFrameCounter[i].Val = FrameCounter.Val;
-				}
-			}
-
-
+			
+            // drop the frame in case of replay
+            if (i < CONNECTION_SIZE && IncomingFrameCounter[i].Val >= FrameCounter.Val)
+            {
+                MiMAC_DiscardPacket();
+                return false;
+            }
+			
 			MACRxPacket.PayloadLen -= 5;  // used to 5 for frame counter now -4 also added for MIC integrity
 
 			received_mic_values[0] = MACRxPacket.Payload[MACRxPacket.PayloadLen+1];
@@ -1179,6 +1192,12 @@ bool MiMAC_ReceivedPacket(void)
 			{
 				MiMAC_DiscardPacket();
 				return false;
+			}
+			
+			// update the frame counter
+            if (i < CONNECTION_SIZE) 
+			{
+				IncomingFrameCounter[i].Val = FrameCounter.Val;
 			}
 
 			// remove the security header from the payload

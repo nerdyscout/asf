@@ -2,7 +2,7 @@
  *
  * \file
  *
- * \brief This module contains NMC1000 SPI protocol bus APIs implementation.
+ * \brief This module contains WILC SPI protocol bus APIs implementation.
  *
  * Copyright (c) 2016-2018 Microchip Technology Inc. and its subsidiaries.
  *
@@ -31,6 +31,10 @@
  * \asf_license_stop
  *
  */
+/*
+ * Support and FAQ: visit <a href="https://www.microchip.com/support/">Microchip Support</a>
+ */
+ 
 #include "common/include/nm_common.h"
 
 #ifdef CONF_WILC_USE_SPI
@@ -563,7 +567,7 @@ static int spi_cmd_complete(uint8_t cmd, uint32_t adr, uint8_t *b, uint32_t sz, 
 	rsp = rb[rix++];
 
 
-	if (rsp != cmd) {
+	if (rsp != cmd && !clockless) {
 		M2M_ERR("[nmi spi]: Failed cmd response, cmd (%02x), resp (%02x)\n", cmd, rsp);
 		result = N_FAIL;
 		return result;
@@ -573,7 +577,7 @@ static int spi_cmd_complete(uint8_t cmd, uint32_t adr, uint8_t *b, uint32_t sz, 
 	State response
 	**/
 	rsp = rb[rix++];
-	if (rsp != 0x00) {
+	if (rsp != 0x00 && !clockless) {
 		M2M_ERR("[nmi spi]: Failed cmd state response state (%02x)\n", rsp);
 		result = N_FAIL;
 		return result;
@@ -600,7 +604,7 @@ static int spi_cmd_complete(uint8_t cmd, uint32_t adr, uint8_t *b, uint32_t sz, 
 					break;
 			} while (retry--);
 
-			if (retry <= 0) {
+			if (retry <= 0 && !clockless) {
 				M2M_ERR("[nmi spi]: Error, data read response (%02x)\n", rsp);
 				result = N_RESET;
 				return result;
@@ -900,7 +904,7 @@ static sint8 spi_write_reg(uint32 addr, uint32 u32data)
 	uint8 clockless = 0;
 	
 _RETRY_:	
-	if (addr <= 0x10) 
+	if (addr <= 0x30) 
 	{
 		/**
 		NMC1000 clockless registers.
@@ -1037,7 +1041,7 @@ static sint8 spi_read_reg(uint32 addr, uint32 *u32data)
 
 _RETRY_:
 
-	if (addr <= 0x10) 
+	if (addr <= 0x30) 
 	{
 		/**
 		NMC1000 clockless registers.
@@ -1075,7 +1079,7 @@ _RETRY_:
 	/* to avoid endianess issues */
 	result = spi_data_read(&tmp[0], 4, clockless);
 	if (result != N_OK) {
-		M2M_ERR("[nmi spi]: Failed data read...\n");
+		M2M_ERR("[nmi spi]: Failed data read reg (%08x)...\n", addr);
 		goto _FAIL_;
 	}
 #else

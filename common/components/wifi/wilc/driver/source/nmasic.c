@@ -31,6 +31,9 @@
  * \asf_license_stop
  *
  */
+/*
+ * Support and FAQ: visit <a href="https://www.microchip.com/support/">Microchip Support</a>
+ */
 
 #include "driver/source/nmbus.h"
 #include "bsp/include/nm_bsp.h"
@@ -338,14 +341,17 @@ sint8 chip_sleep(void)
 {
 	uint32 reg;
 	sint8 ret = M2M_SUCCESS;
+	uint32 trials = 110;	
 	
 #ifdef CONF_WILC_USE_1000_REV_B
-	while(1)
+	while(trials--)
 	{
 		ret = nm_read_reg_with_ret(WILC_TO_INTERFACE_FROM_WF_REG,&reg);
 		if(ret != M2M_SUCCESS) goto ERR1;
 		if((reg & WILC_TO_INTERFACE_FROM_WF_BIT) == 0) break;
 	}
+	if (!trials)
+		M2M_ERR("FW not responding\n");
 #endif
 	/* Clear bit 1 */
 	ret = nm_read_reg_with_ret(WILC_WAKEUP_REG, &reg);
@@ -366,7 +372,6 @@ sint8 chip_sleep(void)
 		if(ret != M2M_SUCCESS)goto ERR1;
 	}
 #endif
-
 ERR1:
 	return ret;
 }
@@ -375,18 +380,17 @@ sint8 chip_wake(void)
 {
 	sint8 ret;
 	volatile uint32 reg = 0, clk_status_reg = 0,trials = 0;
-	
+
 #ifdef CONF_WILC_USE_1000_REV_B
-	ret = nm_read_reg_with_ret(WILC_FROM_INTERFACE_TO_WF_REG, (uint32*)&reg);
+
+	/*USE bit 0 to indicate host wakeup*/
+	ret = nm_write_reg(WILC_FROM_INTERFACE_TO_WF_REG, WILC_FROM_INTERFACE_TO_WF_BIT);
 	if(ret != M2M_SUCCESS)goto _WAKE_EXIT;
-	
-	if(!(reg & WILC_FROM_INTERFACE_TO_WF_BIT))
-	{
-		/*USE bit 0 to indicate host wakeup*/
-		ret = nm_write_reg(WILC_FROM_INTERFACE_TO_WF_REG, reg|WILC_FROM_INTERFACE_TO_WF_BIT);
-		if(ret != M2M_SUCCESS)goto _WAKE_EXIT;
-	}
-#endif		
+
+	ret = nm_write_reg(WILC_WAKEUP_REG, WILC_WAKEUP_BIT);
+	if(ret != M2M_SUCCESS) goto _WAKE_EXIT;
+
+#else
 	ret = nm_read_reg_with_ret(WILC_WAKEUP_REG, (uint32*)&reg);
 	if(ret != M2M_SUCCESS)goto _WAKE_EXIT;
 	/* Set bit 1 */
@@ -395,7 +399,7 @@ sint8 chip_wake(void)
 		ret = nm_write_reg(WILC_WAKEUP_REG, reg | WILC_WAKEUP_BIT);
 		if(ret != M2M_SUCCESS) goto _WAKE_EXIT;	
 	}
-
+#endif
 	do
 	{
 		ret = nm_read_reg_with_ret(WILC_CLK_STATUS_REG, (uint32*)&clk_status_reg);
@@ -785,3 +789,14 @@ _EXIT_ERR:
 	return ret;
 }
 
+sint8 is_valid_gpio(uint8 gpio)
+{
+#if	defined(CONF_WILC_USE_1000_REV_B)
+	return (gpio == 0 || gpio == 1 || gpio == 3 || gpio == 4 || gpio == 6);
+#elif defined(CONF_WILC_USE_3000_REV_A)
+	return (gpio == 0 || gpio == 3 || gpio == 4 ||gpio == 6 ||
+		(gpio >= 17 && gpio <= 20));
+#endif
+	
+	return false;
+}

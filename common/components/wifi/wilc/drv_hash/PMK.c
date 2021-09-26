@@ -31,6 +31,9 @@
  * \asf_license_stop
  *
  */
+/*
+ * Support and FAQ: visit <a href="https://www.microchip.com/support/">Microchip Support</a>
+ */
 
 #include "driver/include/m2m_types.h"
 #include "drv_hash/crypto.h"
@@ -338,19 +341,6 @@ uint8 pbkdf2_sha1_f(uint8 *key, uint8 key_length, uint8 *data, uint32 data_len,
     uint8 tmp1[36] = {0};
     uint8 tmp2[A_SHA_DIGEST_LEN] = {0};
     uint16 i, j;
-    
-    for (i = 0; i < key_length ; i++)
-    {
-        if (key[i] < 32)
-        {           
-            return 0;
-        }
-        else if (key[i] > 126)
-        {           
-            return 0;
-        }
-    }
-
 
     /* U1 = PRF(P, S || int(i)) */
     m2m_memcpy(tmp1, data, data_len);

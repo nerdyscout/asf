@@ -3,7 +3,7 @@
 *
 * \brief Configuration for MiWi P2P Protocol
 *
-* Copyright (c) 2018 Microchip Technology Inc. and its subsidiaries. 
+* Copyright (c) 2018 - 2019 Microchip Technology Inc. and its subsidiaries. 
 *
 * \asf_license_start
 *
@@ -55,7 +55,7 @@
         // timeout, the RFD device can continue to operate and then go to 
         // sleep to conserve battery power.
         /*********************************************************************/
-        #define RFD_DATA_WAIT                   0x00003FFF
+        #define RFD_DATA_WAIT                   0x00006FFF
         
         
         /*********************************************************************/
@@ -109,17 +109,7 @@
         // INDIRECT_MESSAGE_TIMEOUT defines the timeout interval in seconds
         // for the stored packets for sleeping devices
         /*********************************************************************/
-        #define INDIRECT_MESSAGE_TIMEOUT (ONE_SECOND * RFD_WAKEUP_INTERVAL * (INDIRECT_MESSAGE_SIZE + 1))
-        
-        
-        /*********************************************************************/
-        // ENABLE_ENHANCED_DATA_REQUEST enables the Enhanced Data Request 
-        // feature of P2P stack. It combines the message that is send from
-        // the sleeping device with Data Request command upon wakeup, to save
-        // 20% - 30% active time for sleeping device, thus prolong the battery
-        // life.
-        /*********************************************************************/
-        //#define ENABLE_ENHANCED_DATA_REQUEST
+        #define INDIRECT_MESSAGE_TIMEOUT (RFD_WAKEUP_INTERVAL * (INDIRECT_MESSAGE_SIZE + 1))
         
         
         /*********************************************************************/
